@@ -153,7 +153,37 @@ python main.py
 - [快速开始](QUICK_START.md) - 快速安装和运行指南
 - [服务器安装教程](INSTALL_SERVER.md) - 在 Linux 服务器上安装和部署的完整指南
 - [使用说明](USAGE.md) - 详细的配置和使用指南
+- [获取 Condition ID](get_condition_id.md) - 如何获取 Polymarket condition_id 的详细指南
 - [测试脚本](test_connection.py) - API 连接测试工具
+
+## 🔧 配置 Condition ID
+
+如果程序提示"无法从市场信息获取价格"，需要手动配置 `condition_id`：
+
+### 快速获取方法
+
+运行辅助脚本：
+```bash
+python get_condition_id.py
+```
+
+脚本会自动尝试从 API 获取并显示 `condition_id`。
+
+### 手动配置
+
+1. 获取 `condition_id`（参考 [get_condition_id.md](get_condition_id.md)）
+2. 在 `.env` 文件中添加：
+   ```env
+   POLYMARKET_CONDITION_ID=0x1234567890abcdef...
+   ```
+
+### 启用调试模式
+
+如果仍然无法获取，启用调试日志查看详细 API 响应：
+```python
+# 在 config.py 中
+LOG_LEVEL = "DEBUG"
+```
 
 ## 🚀 服务器快速安装
 

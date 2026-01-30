@@ -3,8 +3,9 @@ Polymarket API 客户端
 """
 import requests
 import logging
+import json
 from typing import Optional, Dict
-from config import POLYMARKET_API_BASE, POLYMARKET_EVENT_SLUG
+from config import POLYMARKET_API_BASE, POLYMARKET_EVENT_SLUG, POLYMARKET_CONDITION_ID
 from utils import extract_polymarket_event_id
 
 logger = logging.getLogger(__name__)
@@ -38,15 +39,37 @@ class PolymarketClient:
             url = f"{self.base_url}/markets"
             params = {"slug": event_slug}
             
+            logger.debug(f"请求 Polymarket API: {url} with params: {params}")
             response = self.session.get(url, params=params, timeout=10)
+            
+            # 记录响应状态
+            logger.debug(f"Polymarket API 响应状态: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"Polymarket API 返回非200状态: {response.status_code}")
+                logger.debug(f"响应内容: {response.text[:500]}")
+            
             response.raise_for_status()
             
             data = response.json()
+            
+            # 记录响应结构以便调试
+            logger.debug(f"Polymarket API 响应类型: {type(data)}")
+            if isinstance(data, dict):
+                logger.debug(f"响应键: {list(data.keys())[:10]}")
+            elif isinstance(data, list) and len(data) > 0:
+                logger.debug(f"响应列表长度: {len(data)}, 第一个元素类型: {type(data[0])}")
+                if isinstance(data[0], dict):
+                    logger.debug(f"第一个元素键: {list(data[0].keys())[:10]}")
+            
             return data
+        except requests.exceptions.RequestException as e:
+            logger.error(f"获取 Polymarket 市场信息失败 (网络错误): {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.debug(f"错误响应内容: {e.response.text[:500]}")
+            return None
         except Exception as e:
-            logger.error(f"获取 Polymarket 市场信息失败: {e}")
-            # 如果API端点不同，可能需要尝试其他方法
-            logger.debug("尝试备用方法获取市场信息...")
+            logger.error(f"获取 Polymarket 市场信息失败: {e}", exc_info=True)
             return None
     
     def get_orderbook(self, condition_id: str) -> Optional[Dict]:

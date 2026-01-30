@@ -12,6 +12,10 @@ POLYMARKET_EVENT_SLUG = "bitcoin-up-or-down-january-28-10am-et"  # 从URL中提�
 POLYMARKET_API_BASE = "https://clob.polymarket.com"
 POLYMARKET_PRIVATE_KEY = os.getenv("POLYMARKET_PRIVATE_KEY", "")
 
+# 手动配置 condition_id（如果无法自动获取）
+# 获取方法：在浏览器中打开事件页面，查看网络请求，找到包含 conditionId 的响应
+POLYMARKET_CONDITION_ID = os.getenv("POLYMARKET_CONDITION_ID", "")
+
 # Opinion.trade 配置
 OPINION_TRADE_URL = "https://app.opinion.trade/detail?topicId=4866"
 OPINION_TRADE_TOPIC_ID = "4866"
