@@ -4,7 +4,7 @@ Opinion.trade API 客户端
 import requests
 import logging
 from typing import Optional, Dict
-from config import OPINION_TRADE_API_BASE, OPINION_TRADE_TOPIC_ID
+from config import OPINION_API_BASE, OPINION_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -13,60 +13,51 @@ class OpinionTradeClient:
     """Opinion.trade API 客户端"""
     
     def __init__(self):
-        self.base_url = OPINION_TRADE_API_BASE
-        self.topic_id = OPINION_TRADE_TOPIC_ID
+        self.base_url = OPINION_API_BASE
+        self.api_key = OPINION_API_KEY
         self.session = requests.Session()
         self.session.headers.update({
             "Content-Type": "application/json",
+            "apikey": self.api_key,
         })
     
-    def get_topic_info(self, topic_id: str = None) -> Optional[Dict]:
+    def test_api_key(self) -> bool:
         """
-        获取话题信息
+        测试 API Key 是否有效
         
-        Args:
-            topic_id: 话题ID，默认使用配置中的ID
-            
         Returns:
-            话题信息字典
+            True 如果有效，False 如果无效
         """
         try:
-            topic_id = topic_id or self.topic_id
-            # Opinion.trade API 端点（需要根据实际API文档调整）
-            url = f"{self.base_url}/topics/{topic_id}"
+            url = f"{self.base_url}/openapi/market"
+            params = {"limit": 1}
             
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
+            response = self.session.get(url, params=params, timeout=10)
             
-            return response.json()
+            if response.status_code == 200:
+                logger.info("✓ Opinion.trade API Key 有效")
+                return True
+            elif response.status_code == 401:
+                logger.error("✗ Opinion.trade API Key 无效或没有权限 (401)")
+                return False
+            else:
+                logger.warning(f"Opinion.trade API 返回状态码: {response.status_code}")
+                return False
         except Exception as e:
-            logger.error(f"获取 Opinion.trade 话题信息失败: {e}")
-            return None
+            logger.error(f"测试 Opinion.trade API Key 失败: {e}")
+            return False
     
-    def get_market_price(self, topic_id: str = None) -> Optional[float]:
+    def get_market_price(self) -> Optional[float]:
         """
-        获取市场价格
+        获取市场价格（需要根据实际 API 实现）
         
-        Args:
-            topic_id: 话题ID
-            
         Returns:
             价格（0-1之间）
         """
         try:
-            topic_info = self.get_topic_info(topic_id)
-            if not topic_info:
-                return None
-            
-            # 根据实际API响应格式解析价格
-            # 这里需要根据 Opinion.trade 的实际API结构调整
-            if "price" in topic_info:
-                return float(topic_info["price"])
-            elif "yesPrice" in topic_info:
-                return float(topic_info["yesPrice"])
-            elif "probability" in topic_info:
-                return float(topic_info["probability"])
-            
+            # TODO: 根据实际 Opinion.trade API 实现
+            # 这里需要根据实际的 API 端点调整
+            logger.warning("Opinion.trade 价格获取功能需要根据实际 API 实现")
             return None
         except Exception as e:
             logger.error(f"获取 Opinion.trade 价格失败: {e}")

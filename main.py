@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from arbitrage_detector import ArbitrageDetector
 from arbitrage_executor import ArbitrageExecutor
-from config import POLL_INTERVAL, LOG_LEVEL
+from config import Config, POLL_INTERVAL, LOG_LEVEL
 
 # 配置日志
 logging.basicConfig(
@@ -25,6 +25,14 @@ class ArbitrageBot:
     """套利机器人主类"""
     
     def __init__(self):
+        # 验证配置
+        try:
+            Config.validate()
+        except ValueError as e:
+            logger.error(f"配置验证失败: {e}")
+            logger.error("请检查 .env 文件中的配置")
+            raise
+        
         self.detector = ArbitrageDetector()
         self.executor = ArbitrageExecutor()
         self.running = False
@@ -40,7 +48,10 @@ class ArbitrageBot:
         logger.info("=" * 60)
         logger.info("套利机器人启动")
         logger.info("监控平台: Polymarket & Opinion.trade")
+        logger.info(f"事件: {Config.POLYMARKET_EVENT_SLUG}")
         logger.info(f"轮询间隔: {POLL_INTERVAL} 秒")
+        logger.info(f"套利阈值: {Config.ARBITRAGE_MAX_SUM_PRICE}")
+        logger.info(f"订单金额: ${Config.ARBITRAGE_ORDER_USDC}")
         logger.info("=" * 60)
         
         self.running = True

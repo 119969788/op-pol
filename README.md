@@ -38,7 +38,7 @@ pip install -r requirements.txt
 
 ### 2. 配置环境变量
 
-复制 `.env.example` 为 `.env` 并填入你的API密钥：
+复制 `.env.example` 为 `.env` 并填入你的配置：
 
 ```bash
 # Windows
@@ -48,37 +48,24 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-编辑 `.env` 文件：
-```
-POLYMARKET_PRIVATE_KEY=your_polymarket_private_key
-OPINION_TRADE_API_KEY=your_opinion_trade_api_key
-```
+编辑 `.env` 文件，**必须配置**：
+- `OPINION_API_KEY`: 你的 Opinion.trade API Key
+- 其他配置项已包含 BTC Jan 30 7AM 的默认值
 
-### 3. 测试连接（推荐）
+### 3. 验证配置（推荐）
 
-在运行主程序前，先测试 API 连接：
+在运行主程序前，先验证配置和 API 连接：
 
 ```bash
-python test_connection.py
+python verify_setup.py
 ```
 
-这将帮助你验证：
-- API 密钥是否正确
-- 能否成功获取价格
-- 套利检测是否正常工作
+这将验证：
+- ✅ 配置是否完整
+- ✅ Polymarket API 是否可访问
+- ✅ Opinion.trade API Key 是否有效
 
-### 4. 配置参数
-
-编辑 `config.py` 文件，设置：
-- 事件URL和话题ID（已默认配置）
-- 套利阈值（默认1.0）
-- 最小利润边际（默认1%）
-- 最大持仓大小（默认$100）
-- 轮询间隔（默认1秒）
-
-**重要**: 需要根据实际的 API 文档调整 API 端点。
-
-### 5. 运行程序
+### 4. 运行程序
 
 ```bash
 python main.py
@@ -86,9 +73,22 @@ python main.py
 
 程序将：
 - 每秒检查一次价格
-- 检测套利机会
+- 检测套利机会（当两边价格相加 < 1.0 时）
 - 自动执行买入操作
 - 记录所有交易到日志文件
+
+### 5. 验证 API（手动测试）
+
+**验证 Polymarket 订单簿**:
+```bash
+curl -s 'https://clob.polymarket.com/book?token_id=38628387299211582034336321279819512498682584959013498891074082886323537791474' | head
+```
+
+**验证 Opinion.trade API Key**:
+```bash
+curl -s 'https://proxy.opinion.trade:8443/openapi/market?limit=1' \
+  -H 'apikey: 你的真实apikey'
+```
 
 ## 📁 项目结构
 

@@ -5,8 +5,12 @@ import requests
 import logging
 import json
 from typing import Optional, Dict
-from config import POLYMARKET_API_BASE, POLYMARKET_EVENT_SLUG, POLYMARKET_CONDITION_ID
-from utils import extract_polymarket_event_id
+from config import (
+    POLYMARKET_API_BASE, 
+    POLYMARKET_UP_TOKEN_ID, 
+    POLYMARKET_DOWN_TOKEN_ID,
+    POLYMARKET_EVENT_SLUG
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,59 +76,86 @@ class PolymarketClient:
             logger.error(f"获取 Polymarket 市场信息失败: {e}", exc_info=True)
             return None
     
-    def get_orderbook(self, condition_id: str) -> Optional[Dict]:
+    def get_orderbook(self, token_id: str) -> Optional[Dict]:
         """
         获取订单簿数据
         
         Args:
-            condition_id: 条件ID
+            token_id: Token ID (CLOB token_id)
             
         Returns:
             订单簿数据
         """
         try:
             url = f"{self.base_url}/book"
-            params = {"token_id": condition_id}
+            params = {"token_id": token_id}
             
+            logger.debug(f"获取订单簿: {url}?token_id={token_id}")
             response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()
             
+            if response.status_code == 404:
+                logger.warning(f"订单簿不存在 (404): token_id={token_id}")
+                return None
+            
+            response.raise_for_status()
             return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"获取 Polymarket 订单簿失败: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.debug(f"错误响应: {e.response.text[:200]}")
+            return None
         except Exception as e:
             logger.error(f"获取 Polymarket 订单簿失败: {e}")
             return None
     
-    def get_best_price(self, condition_id: str, outcome: str = "YES") -> Optional[float]:
+    def get_best_price_from_token_id(self, token_id: str) -> Optional[float]:
         """
-        获取最佳价格
+        从 token_id 获取最佳买入价格
         
         Args:
-            condition_id: 条件ID
-            outcome: 结果类型 (YES/NO)
+            token_id: CLOB token_id
+            
+        Returns:
+            最佳买入价格（0-1之间）
+        """
+        try:
+            orderbook = self.get_orderbook(token_id)
+            if not orderbook:
+                return None
+            
+            # 解析订单簿获取最佳买入价格（最高出价）
+            # Polymarket CLOB API 返回格式: {"bids": [[price, size], ...], "asks": [[price, size], ...]}
+            if "bids" in orderbook and orderbook["bids"]:
+                # bids 是 [[price, size], ...] 格式，按价格从高到低排序
+                best_bid = orderbook["bids"][0]
+                if isinstance(best_bid, list) and len(best_bid) > 0:
+                    price = float(best_bid[0])
+                    logger.debug(f"Token {token_id} 最佳买入价: {price}")
+                    return price
+                elif isinstance(best_bid, dict):
+                    price = float(best_bid.get("price", 0))
+                    logger.debug(f"Token {token_id} 最佳买入价: {price}")
+                    return price
+            
+            logger.warning(f"Token {token_id} 订单簿中没有 bids")
+            return None
+        except Exception as e:
+            logger.error(f"获取 Polymarket 最佳价格失败 (token_id={token_id}): {e}")
+            return None
+    
+    def get_best_price(self, condition_id: str, outcome: str = "YES") -> Optional[float]:
+        """
+        获取最佳价格（兼容旧接口）
+        
+        Args:
+            condition_id: 条件ID 或 token_id
+            outcome: 结果类型 (YES/NO/UP/DOWN)
             
         Returns:
             最佳价格（0-1之间）
         """
-        try:
-            orderbook = self.get_orderbook(condition_id)
-            if not orderbook:
-                return None
-            
-            # 解析订单簿获取最佳买入价格
-            # 这里需要根据实际的API响应格式调整
-            if "bids" in orderbook and orderbook["bids"]:
-                # 获取最高出价（买入YES的价格）
-                best_bid = orderbook["bids"][0]
-                if isinstance(best_bid, list):
-                    price = float(best_bid[0])
-                else:
-                    price = float(best_bid.get("price", 0))
-                return price
-            
-            return None
-        except Exception as e:
-            logger.error(f"获取 Polymarket 最佳价格失败: {e}")
-            return None
+        # 如果传入的是 token_id，直接使用
+        return self.get_best_price_from_token_id(condition_id)
     
     def place_order(self, condition_id: str, outcome: str, size: float, price: float) -> bool:
         """
