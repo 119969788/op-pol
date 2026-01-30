@@ -150,8 +150,23 @@ python main.py
 
 ## 📚 相关文档
 
+- [快速开始](QUICK_START.md) - 快速安装和运行指南
+- [服务器安装教程](INSTALL_SERVER.md) - 在 Linux 服务器上安装和部署的完整指南
 - [使用说明](USAGE.md) - 详细的配置和使用指南
 - [测试脚本](test_connection.py) - API 连接测试工具
+
+## 🚀 服务器快速安装
+
+如果你在 Linux 服务器上，可以使用自动安装脚本：
+
+```bash
+# 下载并运行安装脚本
+wget https://raw.githubusercontent.com/119969788/op-pol/main/setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+或者查看 [快速开始指南](QUICK_START.md) 或 [完整安装教程](INSTALL_SERVER.md)
 
 ## 📊 日志和监控
 
