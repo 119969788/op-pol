@@ -30,16 +30,37 @@ def test_polymarket():
         print(f"  响应类型: {type(market_info)}")
         if isinstance(market_info, dict):
             print(f"  键: {list(market_info.keys())[:5]}...")  # 只显示前5个键
+            if "data" in market_info and isinstance(market_info["data"], list):
+                print(f"  市场数量: {len(market_info['data'])}")
         elif isinstance(market_info, list):
             print(f"  列表长度: {len(market_info)}")
     else:
         print("✗ 无法获取市场信息")
         print("  提示: 可能需要调整 API 端点或认证方式")
     
-    # 测试获取价格（需要 condition_id）
-    print("\n2. 获取价格...")
-    print("  注意: 需要有效的 condition_id 才能获取价格")
-    print("  提示: 可以从市场信息中提取 condition_id")
+    # 测试使用 token_id 获取价格
+    print("\n2. 测试使用 token_id 获取价格...")
+    from config import POLYMARKET_UP_TOKEN_ID, POLYMARKET_DOWN_TOKEN_ID
+    
+    if POLYMARKET_UP_TOKEN_ID:
+        print(f"  测试 UP Token ID: {POLYMARKET_UP_TOKEN_ID[:20]}...")
+        up_price = client.get_best_price_from_token_id(POLYMARKET_UP_TOKEN_ID)
+        if up_price is not None:
+            print(f"  ✓ UP 价格: {up_price:.4f} ({up_price*100:.2f}%)")
+        else:
+            print(f"  ✗ 无法获取 UP 价格")
+    else:
+        print("  ⚠ 未配置 POLYMARKET_UP_TOKEN_ID")
+    
+    if POLYMARKET_DOWN_TOKEN_ID:
+        print(f"  测试 DOWN Token ID: {POLYMARKET_DOWN_TOKEN_ID[:20]}...")
+        down_price = client.get_best_price_from_token_id(POLYMARKET_DOWN_TOKEN_ID)
+        if down_price is not None:
+            print(f"  ✓ DOWN 价格: {down_price:.4f} ({down_price*100:.2f}%)")
+        else:
+            print(f"  ✗ 无法获取 DOWN 价格")
+    else:
+        print("  ⚠ 未配置 POLYMARKET_DOWN_TOKEN_ID")
 
 
 def test_opinion_trade():
@@ -50,26 +71,53 @@ def test_opinion_trade():
     
     client = OpinionTradeClient()
     
-    # 测试获取话题信息
-    print("\n1. 获取话题信息...")
-    topic_info = client.get_topic_info()
-    if topic_info:
-        print(f"✓ 成功获取话题信息")
-        print(f"  响应类型: {type(topic_info)}")
-        if isinstance(topic_info, dict):
-            print(f"  键: {list(topic_info.keys())[:5]}...")
+    # 测试 API Key
+    print("\n1. 测试 API Key...")
+    if client.test_api_key():
+        print("✓ API Key 有效")
     else:
-        print("✗ 无法获取话题信息")
-        print("  提示: 可能需要调整 API 端点或认证方式")
+        print("✗ API Key 无效或没有权限")
+        print("  提示: 请检查 .env 文件中的 OPINION_API_KEY 配置")
+        return
     
-    # 测试获取价格
-    print("\n2. 获取价格...")
+    # 测试获取市场价格数据
+    print("\n2. 获取市场数据...")
+    try:
+        import requests
+        from config import OPINION_API_BASE, OPINION_API_KEY
+        
+        url = f"{OPINION_API_BASE}/openapi/market"
+        params = {"limit": 5}
+        headers = {
+            "apikey": OPINION_API_KEY,
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✓ 成功获取市场数据")
+            print(f"  响应类型: {type(data)}")
+            if isinstance(data, dict):
+                print(f"  键: {list(data.keys())[:10]}")
+                if "data" in data:
+                    print(f"  数据条数: {len(data.get('data', []))}")
+            elif isinstance(data, list):
+                print(f"  数据条数: {len(data)}")
+        else:
+            print(f"✗ 获取市场数据失败: {response.status_code}")
+            print(f"  响应: {response.text[:200]}")
+    except Exception as e:
+        print(f"✗ 获取市场数据异常: {e}")
+    
+    # 测试获取价格（如果已实现）
+    print("\n3. 获取价格...")
     price = client.get_market_price()
     if price is not None:
         print(f"✓ 成功获取价格: {price:.4f} ({price*100:.2f}%)")
     else:
-        print("✗ 无法获取价格")
-        print("  提示: 需要根据实际 API 响应格式调整解析逻辑")
+        print("⚠ 价格获取功能尚未实现")
+        print("  提示: 需要根据实际 Opinion.trade API 文档实现价格获取逻辑")
 
 
 def test_arbitrage_detection():
